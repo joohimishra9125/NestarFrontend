@@ -10,7 +10,9 @@ import { getAllStatus } from "../../features/statusSlice";
 import { toast } from "react-toastify";
 import { addlead } from "../../features/leadSlice";
 // import ReactHTMLTableToExcel from 'react-html-table-to-excel'; // Import the library
-
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { addfollowup, getAllFollowup } from "../../features/followupSlice";
 const disposition = [
   "Not Interested",
   "Interested",
@@ -38,6 +40,175 @@ export const AllNewLead = ({ sendDataToParent, dataFromParent }) => {
   const { Statusdata } = useSelector((state) => state.StatusData);
   const apiUrl = process.env.REACT_APP_API_URL;
   const DBuUrl = process.env.REACT_APP_DB_URL;
+  const [selectedRow, setSelectedRow] = useState(null); 
+  const [isModalOpen, setIsModalOpen] = useState(false); 
+  const [dataa, setData] = useState({
+    followup_date: new Date(), // Initialize with the current date
+  });
+ 
+  const getdatetimeformate = (datetime) => {
+    if (datetime) {
+      const dateObject = new Date(datetime);
+      const formattedDate = `${padZero(dateObject.getDate())}-${padZero(
+        dateObject.getMonth() + 1
+      )}-${dateObject.getFullYear()} ${padZero(
+        dateObject.getHours()
+      )}:${padZero(dateObject.getMinutes())}`;
+      return formattedDate;
+    } else {
+      return " ";
+    }
+  };
+  function padZero(num) {
+    return num < 10 ? `0${num}` : num;
+  }
+  const handleQuickEdit = (row) => {
+    setSelectedRow(row); // Set the row data
+    setIsModalOpen(true); // Open the modal
+  };
+  
+  // Function to handle modal close
+  const handleCloseModal = () => {
+    setIsModalOpen(false); // Close the modal
+  };
+  const handleSubmit = async (e) => {
+    e.preventDefault(); // Prevent default form submission behavior
+  
+    // Function to convert local time to UTC by removing the time zone offset
+    // const followupDate = dataa.followup_date;
+    const followupDate = selectedRow?.followup_date;
+    // Check if followupDate is defined and not null
+    if (!followupDate) {
+      toast.warn("Followup date is required");
+      return;
+    }
+  
+    // Convert followupDate to ISO string without timezone adjustment
+    const adjustedFollowupDate = new Date(followupDate).toISOString().slice(0, 16);
+  
+  
+    // Collect form data
+    const updatedLeadData = {
+      lead_id: selectedRow._id,
+      commented_by: selectedRow?.agent_details[0]?._id || '',
+      followup_status_id: selectedRow.status_details[0]?._id || '',
+      
+      // Convert followup_date to UTC before submitting
+      followup_date: adjustedFollowupDate ,
+      
+      followup_won_amount: selectedRow.followup_won_amount || 0,
+      followup_lost_reason_id: selectedRow.followup_lost_reason_id || '',
+      add_to_calender: selectedRow.add_to_calender || false,
+      followup_desc: selectedRow.description || '',
+    };
+  
+    console.log("Submitting data:", updatedLeadData);
+  
+    try {
+      const response = await dispatch(addfollowup(updatedLeadData));
+      if (response.payload.success) {
+        toast.success(response.payload?.message);
+        // Simulate page refresh effect
+        // handleCloseModal(); 
+        window.location.reload();
+        
+      } else {
+        toast.warn(response.payload?.message);
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error("Error submitting followup:", error);
+      toast.error("An error occurred while submitting followup");
+    }
+  };
+  
+
+ 
+  
+  const parseDate = (dateString) => {
+    const date = new Date(dateString);
+    return isNaN(date.getTime()) ? null : date;
+  };
+  
+
+  const quickEditModal = (
+    <div
+      className={`modal fade ${isModalOpen ? 'show' : ''}`}
+      style={{ display: isModalOpen ? 'block' : 'none' }}
+      aria-labelledby="quickEditModalLabel"
+      aria-hidden={!isModalOpen}
+    >
+      <div className="modal-dialog">
+        <div className="modal-content">
+          <div className="modal-header">
+            <h5 className="modal-title" id="quickEditModalLabel">Quick Edit</h5>
+            <button type="button" className="btn-close" onClick={handleCloseModal}></button>
+          </div>
+          <div className="modal-body">
+            <form onSubmit={handleSubmit}>
+              <div className="mb-3">
+                <label htmlFor="lastComment" className="form-label">Last Comment</label>
+                <textarea
+                  id="lastComment"
+                  className="form-control"
+                  value={selectedRow?.description || ""}
+                  onChange={(e) => setSelectedRow({ ...selectedRow, description: e.target.value })}
+                />
+              </div>
+             
+              <div className="mb-3">
+                <label htmlFor="followupDateTime" className="form-label">Follow-up Date and Time</label>
+                {/* <input
+                  type="datetime-local"
+                  id="followupDateTime"
+                  className="form-control"
+                  value={selectedRow?.followup_date ? formatDateToLocal(selectedRow.followup_date) : ""}
+                  onChange={(e) => setSelectedRow({ ...selectedRow, followup_date: e.target.value })}
+                /> */}
+                 <DatePicker
+                      // selected={dataa.followup_date}
+                      // onChange={(date) => setData({ ...selectedRow, followup_date: date })}
+                      selected={selectedRow?.followup_date ? new Date(selectedRow.followup_date) : null}
+                      onChange={(date) => setSelectedRow({ ...selectedRow, followup_date: date })}
+                      showTimeSelect
+                      timeFormat="hh:mm aa"
+                      timeIntervals={5}
+                      timeCaption="Time"
+                      dateFormat="dd/MM/yyyy h:mm aa" // Custom format: day/month/year and 12-hour time
+                      className="form-control"
+                      placeholderText="Followup date"
+                      name="followup_date"
+                      id="followup_date"
+                    />
+              </div>
+  
+              <div className="mb-3">
+                <label htmlFor="status" className="form-label">Change Status</label>
+                <select
+                  id="status"
+                  className="form-control"
+                  value={selectedRow?.status_details[0]?._id || ""}
+                  onChange={(e) => setSelectedRow({ ...selectedRow, status_details: [{ _id: e.target.value }] })}
+                >
+                  <option value="">Select Status</option>
+                  {Statusdata.leadstatus?.map((status) => (
+                    <option key={status._id} value={status._id}>
+                      {status.status_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+  
+              <div className="modal-footer">
+                <button type="submit" className="btn btn-primary">Submit</button>
+                <button type="button" className="btn btn-secondary" onClick={handleCloseModal}>Close</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
   useEffect(() => {
     const fetchData = async () => {
       dispatch(getAllAgent());
@@ -315,23 +486,43 @@ export const AllNewLead = ({ sendDataToParent, dataFromParent }) => {
       sortable: true,
       cell: (row) => <div style={{ display: "none" }}>{row.description}</div>,
     },
-    {
-      name: "Disposition & Remaks",
-      cell: (row) => (
-        <div>
-          <select
-            name="disposition"
-            onChange={(e) => updateDisposition(row, e)}
-            value={row?.disposition}
-          >
-            <option>Select</option>
-            {disposition.map((item, index) => {
-              return <option value={item}>{item}</option>;
-            })}
-          </select>
-        </div>
-      ),
+    // {
+    //   name: "Disposition & Remaks",
+    //   cell: (row) => (
+    //     <div>
+    //       <select
+    //         name="disposition"
+    //         onChange={(e) => updateDisposition(row, e)}
+    //         value={row?.disposition}
+    //       >
+    //         <option>Select</option>
+    //         {disposition.map((item, index) => {
+    //           return <option value={item}>{item}</option>;
+    //         })}
+    //       </select>
+    //     </div>
+    //   ),
 
+    //   sortable: true,
+    // },
+    {
+      name: "Quick Edit",
+      cell: (row) => <button onClick={() => handleQuickEdit(row)}>Quick Edit</button>,
+    },
+
+     
+    {
+      // name: "Followup date",
+      name: <div style={{ display: "none" }}>Followup date</div>,
+      selector: (row) =>
+        row?.followup_date
+          ? (<div style={{display:"none"}} >{getdatetimeformate(row?.followup_date)}</div>) 
+          
+          //  row?.followup_date && format(new Date(datafomate(row?.followup_date)), 'dd/MM/yy hh:mm:ss')
+            
+          : (
+            ""
+          ),
       sortable: true,
     },
 
@@ -379,6 +570,49 @@ export const AllNewLead = ({ sendDataToParent, dataFromParent }) => {
       selector: (row) => row?.description,
       sortable: true,
       cell: (row) => <div style={{ display: "none" }}>{row.description}</div>,
+    },
+    // {
+    //   name: "Change Status",
+    //   cell: (row) => (
+    //     <div style={{ display: 'flex', alignItems: 'center' }}>
+    //       <select
+    //         onChange={(e) => handleStatusChange(e, row)}
+    //         value={row?.status_details[0]?._id || ""}
+    //         style={{ marginRight: '10px' }}
+    //       >
+    //         <option value="">Select Status</option>
+    //         {Statusdata.leadstatus?.map((status) => (
+    //           <option
+    //             key={status._id}
+    //             value={status._id}
+    //           >
+    //             {status.status_name}
+    //           </option>
+    //         ))}
+    //       </select>
+        
+    //     </div>
+    //   ),
+    // },
+    
+
+    {
+      name: "Quick Edit",
+      cell: (row) => <button onClick={() => handleQuickEdit(row)}>Quick Edit</button>,
+    },
+    {
+      // name: "Followup date",
+      name: <div style={{ display: "none" }}>Followup date</div>,
+      selector: (row) =>
+        row?.followup_date
+          ? (<div style={{display:"none"}} >{getdatetimeformate(row?.followup_date)}</div>) 
+          
+          //  row?.followup_date && format(new Date(datafomate(row?.followup_date)), 'dd/MM/yy hh:mm:ss')
+            
+          : (
+            ""
+          ),
+      sortable: true,
     },
     {
       name: "Action",
@@ -714,7 +948,7 @@ export const AllNewLead = ({ sendDataToParent, dataFromParent }) => {
           </div>
         </div>
       </div>
-
+      {quickEditModal}
       {status === false ? (
         <table
           id="example"

@@ -10,7 +10,7 @@ import { getAllAgent, getAllAgentWithData } from "../../features/agentSlice";
 import { getAllStatus } from "../../features/statusSlice";
 import { getAllCountry } from "../../features/country_stateSlice";
 import { getStatebycountry } from "../../features/getStateByCountrySlice";
-import { addfollowup, getAllFollowup } from "../../features/followupSlice";
+import { addfollowup, getAllFollowup, insertIntoAnotherTable } from "../../features/followupSlice";
 import { getAllProductService } from "../../features/product_serviceSlice";
 import { getAllLeadSource } from "../../features/leadSource";
 import Loader from "../Loader";
@@ -26,6 +26,7 @@ export default function Followupage() {
   const DBuUrl = process.env.REACT_APP_DB_URL;
   const navigate = useNavigate();
   const { agent } = useSelector((state) => state.agent);
+ 
   const { CountryState } = useSelector((state) => state.Country_State);
   const { StateByCountry } = useSelector((state) => state.getStateByCountry);
   const { ProductService } = useSelector((state) => state.ProductService);
@@ -36,15 +37,87 @@ export default function Followupage() {
   const { lostreason } = useSelector(
     (state) => state.lostreasonSlice?.LostReasondata
   );
+  console.log('sdsdsd',agent)
+  const role = localStorage.getItem("role");
+  const user_id = localStorage.getItem("user_id");
 
+  const [agents, setAgents] = useState([]);
+  const [filteredAgents, setFilteredAgents] = useState([]);
+  useEffect(() => {
+    if (agents.length > 0 && user_id) {
+      const matchedAgents = agents.filter(agent => agent.assigntl === user_id);
+      const matchedAssigntlIds = matchedAgents.map(agent => agent._id);
+      const additionalAgents = agents.filter(agent => 
+        matchedAssigntlIds.includes(agent.assigntl)
+      );
+      const combinedAgents = [...matchedAgents, ...additionalAgents.filter(a => !matchedAgents.includes(a))];
+      setFilteredAgents(combinedAgents);
+      console.log("Filtered agents:", combinedAgents);
+    }
+  }, [agents, user_id]);
+
+// console.log('leaders agent',agents)
+  useEffect(() => {
+    const fetchAgents = async () => {
+      try {
+        const response = await axios.get(`${apiUrl}/get_all_agent/`);
+        console.log('API response:', response.data);
+        if (response.data.success) {
+          const agentsData = response.data.agent || []; // Corrected key
+          console.log('Agents data:', agentsData);
+          setAgents(agentsData);
+        } else {
+          toast.warn(response.data.message);
+        }
+      } catch (error) {
+        toast.warn("Error fetching agents");
+      }
+    };
+
+    fetchAgents();
+  }, []);
   const [localDetails, setLocalDetails] = useState({});
   const _id = useParams();
   const { lead, loading } = useSelector((state) => state.lead);
   const foundObject = lead?.lead?.find((obj) => obj._id === _id.id);
+  // const followupDatee = foundObject ? foundObject.followup_date : null;
+  // console.log('datetirm',followupDatee)
   const AllDetails = useSelector((state) => state.lead?.lead1?.leads?.["0"]);
   const [data, setdata] = useState({
+    followup_date: new Date(),
     followup_desc: localDetails?.massage_of_calander,
   });
+
+  const [followupDate, setFollowupDate] = useState(null);
+
+  const [approv ,setapprove]=useState([]);
+  const approval = async ()=>{
+    let responce = await axios.get(`${apiUrl}/getapproval/`,{
+      headers:{
+        "Content-Type":"application/json",
+      },
+    });
+    setapprove(responce.data); 
+    console.log('jhjhjhjjhjhjhhj',responce.data)
+  }
+  useEffect(()=>{
+    approval();
+  },[])
+
+  // Effect to set followupDate from foundObject
+  useEffect(() => {
+    if (foundObject && foundObject.followup_date) {
+      const date = new Date(foundObject.followup_date);
+      if (!isNaN(date.getTime())) { // Ensure it's a valid date
+        setFollowupDate(date);
+      }
+    }
+  }, [foundObject]);
+
+  const handleDateChange = (date) => {
+    setFollowupDate(date);
+    // You can also update the foundObject or perform other actions here
+  };
   useEffect(() => {
     setLocalDetails(AllDetails || {});
   }, [AllDetails]);
@@ -76,6 +149,13 @@ export default function Followupage() {
       dispatch(getAllAgent());
     }
     if (localStorage.getItem("role") === "TeamLeader") {
+      dispatch(
+        getAllAgentWithData({
+          assign_to_agent: localStorage.getItem("user_id"),
+        })
+      );
+    }
+    if (localStorage.getItem("role") === "GroupLeader") {
       dispatch(
         getAllAgentWithData({
           assign_to_agent: localStorage.getItem("user_id"),
@@ -210,20 +290,21 @@ export default function Followupage() {
     }
   };
 
-  const submitFollowup = async (e) => {
+  const submitFollowup2 = async (e) => {
     e.preventDefault();
 
     // Retrieve followup_date from data
-    const followupDate = dataa.followup_date;
-
+    // const followupDate = data.followup_date;
+    // const followupDate = followupDate.followup_date;
+    const followupDateValue = followupDate;
     // Check if followupDate is defined and not null
-    if (!followupDate) {
+    if (!followupDateValue) {
       toast.warn("Followup date is required");
       return;
     }
 
     // Convert followupDate to ISO string without timezone adjustment
-    const adjustedFollowupDate = new Date(followupDate)
+    const adjustedFollowupDate = new Date(followupDateValue)
       .toISOString()
       .slice(0, 16);
 
@@ -240,7 +321,8 @@ export default function Followupage() {
       try {
         const response = await dispatch(addfollowup(updatedLeadData));
         if (response.payload.success === true) {
-          navigate(-1);
+          // navigate(-1);
+          window.location.reload();
           toast.success(response.payload?.message);
         } else {
           toast.warn(response.payload?.message);
@@ -254,7 +336,67 @@ export default function Followupage() {
     }
   };
 
-  /////////for attechment //////
+  const submitFollowup = async (e) => {
+    e.preventDefault();
+    const role = localStorage.getItem("role");
+    const user_id = localStorage.getItem("user_id");
+
+    const followupDateValue = followupDate;
+
+    if (!followupDateValue) {
+      toast.warn("Followup date is required");
+      return;
+    }
+
+    const adjustedFollowupDate = new Date(followupDateValue)
+      .toISOString()
+      .slice(0, 16);
+
+    const updatedLeadData = {
+      ...data,
+      lead_id: e.target.lead_id?.value,
+      commented_by: e.target.elements.commented_by?.value,
+      assign_to_agent: e.target.elements.assign_to_agent?.value,
+      followup_status_id: e.target.elements.followup_status_id?.value,
+      followup_date: adjustedFollowupDate,
+    };
+
+    if (!updatedLeadData.lead_id || !updatedLeadData.followup_status_id) {
+      toast.warn("All fields are required");
+      return;
+    }
+    try {
+      const response = await dispatch(addfollowup(updatedLeadData));
+
+      if (response.payload.success === true) {
+        const additionalData = {
+          lead_id: updatedLeadData.lead_id,
+          assign_to_agent: updatedLeadData.assign_to_agent,
+          role: role,
+          user_id: user_id,
+          status: e.target.elements.approved?.checked ? 'approved' : 'not_approved',
+        };
+        const secondResponse = await dispatch(insertIntoAnotherTable(additionalData));
+
+        if (secondResponse.payload.success === true) {
+          toast.success("Followup and additional data saved successfully!");
+        } else {
+          toast.warn("Followup saved but additional data insert failed.");
+        }
+
+        window.location.reload();
+      } else {
+        toast.warn(response.payload?.message || "An error occurred while saving followup");
+      }
+    } catch (error) {
+      console.error("Error submitting followup:", error);
+      toast.error("An error occurred while submitting followup");
+    }
+  };
+  ///////for attechment //////
+
+
+
   const [file, setFile] = useState(null);
   const [filename, setfilename] = useState("");
   const [location, setLocation] = useState(null);
@@ -392,6 +534,24 @@ export default function Followupage() {
   function padZero(num) {
     return num < 10 ? `0${num}` : num;
   }
+
+  const [isChecked, setIsChecked] = useState(false);
+
+  useEffect(() => {
+    const isApproved = approv.some(
+      (item) =>
+        item.lead_id === foundObject?._id &&
+        item.user_id === localStorage.getItem("user_id") &&
+        item.role === localStorage.getItem("role") &&
+        item.status === "approved" &&
+        item.assign_to_agent ===  foundObject?.assign_to_agent
+
+    );
+    setIsChecked(isApproved);
+  }, [approv, foundObject]);
+  const handleCheckboxChange = (e) => {
+    setIsChecked(e.target.checked); 
+  };
 
   return (
     <div>
@@ -646,13 +806,13 @@ export default function Followupage() {
                                   </div>
                                   <div className="row bottoms-border none-border">
                                     <div className="col-md-4 col-xs-4 pd-top">
-                                      <lable>Agent Name </lable>
+                                      <lable>Agent dfgdfg Name </lable>
                                     </div>
                                     <div className="col-md-8 col-xs-8">
-                                      <select
+                                      {/* <select
                                         disabled={
                                           localStorage.getItem("role") ===
-                                          "user"
+                                            "user"
                                             ? true
                                             : false
                                         }
@@ -670,23 +830,67 @@ export default function Followupage() {
                                           Select Options{" "}
                                         </option>
 
-                                        {agent?.agent?.map((agents, key) => {
+                                        {agent?.agent?.map((agentss, key) => {
+                                          
                                           return (
                                             <option
                                               selected={
                                                 foundObject?.assign_to_agent ===
-                                                agents._id
+                                                  agentss._id 
                                                   ? "selected"
                                                   : ""
                                               }
-                                              value={agents._id}
+                                              value={agentss._id}
                                             >
                                               {" "}
-                                              {agents.agent_name}
+                                              {agentss.agent_name}      ({agentss.role})
+                                              
                                             </option>
                                           );
                                         })}
-                                      </select>
+                                      </select> */}
+                                      <select
+                                            disabled={localStorage.getItem("role") === "user" ? true : false}
+                                            className="form-control"
+                                            required
+                                            onChange={(e) =>
+                                              setdata({
+                                                ...data,
+                                                assign_to_agent: e.target.value,
+                                              })
+                                            }
+                                            name="assign_to_agent"
+                                          >
+                                            <option value="">Select Options</option>
+                                            {localStorage.getItem("role") === "GroupLeader" ? (
+                                          
+                                              filteredAgents?.map((agentss, key) => {
+                                                return (
+                                                  <option
+                                                    key={key}
+                                                    selected={foundObject?.assign_to_agent === agentss._id ? "selected" : ""}
+                                                    value={agentss._id}
+                                                  >
+                                                    {agentss.agent_name} ({agentss.role})
+                                                  </option>
+                                                );
+                                              })
+                                            ) : (
+                                              // For other roles, show the full list of agents
+                                              agent?.agent?.map((agentss, key) => {
+                                                return (
+                                                  <option
+                                                    key={key}
+                                                    selected={foundObject?.assign_to_agent === agentss._id ? "selected" : ""}
+                                                    value={agentss._id}
+                                                  >
+                                                    {agentss.agent_name} ({agentss.role})
+                                                  </option>
+                                                );
+                                              })
+                                            )}
+                                          </select>
+
                                     </div>
                                   </div>
                                 </div>
@@ -710,7 +914,7 @@ export default function Followupage() {
                                               <option
                                                 selected={
                                                   foundObject?.status ===
-                                                  status._id
+                                                    status._id
                                                     ? "selected"
                                                     : ""
                                                 }
@@ -754,7 +958,7 @@ export default function Followupage() {
                                             <option
                                               selected={
                                                 foundObject?.status ===
-                                                lostreason1?._id
+                                                  lostreason1?._id
                                                   ? "selected"
                                                   : ""
                                               }
@@ -798,13 +1002,15 @@ export default function Followupage() {
                                     </div>
                                     <div className="col-md-8 col-xs-8">
                                       <DatePicker
-                                        selected={dataa.followup_date}
-                                        onChange={(date) =>
-                                          setData({
-                                            ...data,
-                                            followup_date: date,
-                                          })
-                                        }
+                                        // selected={dataa.followup_date}
+                                        // onChange={(date) =>
+                                        //   setData({
+                                        //     ...data,
+                                        //     followup_date: date,
+                                        //   })
+                                        // }
+                                        selected={followupDate}
+                                        onChange={handleDateChange}
                                         showTimeSelect
                                         timeFormat="hh:mm aa"
                                         timeIntervals={5}
@@ -890,7 +1096,37 @@ export default function Followupage() {
                                         </div>
                                       </div>
                                     </div>
+
+
                                   </div>
+                                  <div className="row">
+                                  <div className="col-md-12">
+                                    <div className="add_calender text-center">
+                                      <div className="form-group">
+                                        <label htmlFor="is_approved">
+                                          Approved &nbsp;&nbsp;
+                                          {/* <input
+                                            
+                                            type="checkbox"
+                                            id="is_approved"
+                                            name="approved"
+                                            defaultValue="yes"
+                                            autoComplete="off"
+                                          /> */}
+                                          <input
+                                              type="checkbox"
+                                              id="is_approved"
+                                              name="approved"
+                                              autoComplete="off"
+                                              checked={isChecked} // Controlled state
+                                              onChange={handleCheckboxChange} // Allow user to toggle
+                                            />
+                                        </label>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  </div>
+                                  
                                 </div>
                               </div>
                             </div>
@@ -1531,7 +1767,7 @@ export default function Followupage() {
                                               <option
                                                 selected={
                                                   foundObject?.assign_to_agent ===
-                                                  agents._id
+                                                    agents._id
                                                     ? "selected"
                                                     : ""
                                                 }
@@ -1569,7 +1805,7 @@ export default function Followupage() {
                                                   <option
                                                     selected={
                                                       foundObject?.status ===
-                                                      status._id
+                                                        status._id
                                                         ? "selected"
                                                         : ""
                                                     }

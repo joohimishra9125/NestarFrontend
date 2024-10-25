@@ -9,7 +9,8 @@ import { getAllStatus } from "../../features/statusSlice";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { HotLeadtable } from "./HotLeadtable";
-function HotLeads() {
+import { ApprovalTable } from "./ApprovalTable";
+function Approval() {
   const apiUrl = process.env.REACT_APP_API_URL;
   const dispatch = useDispatch();
   const { lead, loading } = useSelector((state) => state.lead);
@@ -203,7 +204,7 @@ function HotLeads() {
 
               <div className="pt-3 row pl-0">
                 <div className="col-12 pl-0">
-                  <HotLeadtable
+                  <ApprovalTable
                     sendDataToParent={handleChildData}
                     dataFromParent={none}
                     isHotLead={true}
@@ -219,4 +220,4 @@ function HotLeads() {
   );
 }
 
-export default HotLeads;
+export default Approval;

@@ -12,7 +12,8 @@ function ManageEmployee() {
   const getHigstNoOfCall = async () => {
     try {
       const responce = await axios.get(
-        `${apiUrl}/GetAllUserCallLogById/`, {
+        // `${apiUrl}/GetAllUserCallLogById/`, {
+        `${apiUrl}/GetAllUserCallLogByAdminId/`, {
         headers: {
           "Content-Type": "application/json",
           "mongodb-url": DBuUrl,
@@ -49,6 +50,30 @@ function ManageEmployee() {
       setDetail(error.responce?.data?.array);
     }
   }
+
+  const GetUserCallAccordingToGroupLeader = async (assign_to_agent) => {
+    try {
+      const responce = await axios.post(
+        `${apiUrl}/GetUserCallAccordingToGroupLeader`, {
+        assign_to_agent,
+      }, {
+        headers: {
+          "Content-Type": "application/json",
+          "mongodb-url": DBuUrl,
+            Authorization: "Bearer " + localStorage.getItem("token"),
+
+        }
+      }
+      );
+      setDetail(responce?.data?.array);
+    } catch (error) {
+     
+      console.log(error);
+      setDetail(error.responce?.data?.array);
+    }
+  }
+
+
   const [adSerch, setAdvanceSerch] = useState([]);
   useEffect(() => {
 
@@ -57,6 +82,9 @@ function ManageEmployee() {
     }
     if (localStorage.getItem("role") === "TeamLeader") {
       GetUserCallAccordingToTeamLeader(localStorage.getItem("user_id"))
+    }
+    if (localStorage.getItem("role") === "GroupLeader") {
+      GetUserCallAccordingToGroupLeader(localStorage.getItem("user_id"))
     }
     if (localStorage.getItem("role") === 'user') {
       getHigstNoOfCall();

@@ -174,6 +174,7 @@ function SideNav() {
                           display: activeParent === "lead" ? "block" : "none",
                         }}
                       >
+                      {(userRole === "admin" || userRole === "TeamLeader" || userRole === "GroupLeader") && (
                         <li className="nav-item">
                           <Link
                             to="/Addlead"
@@ -186,6 +187,7 @@ function SideNav() {
                             <p>Add Lead</p>
                           </Link>
                         </li>
+                      )}
                         <li className="nav-item">
                           <Link
                             to="/leads"
@@ -235,7 +237,18 @@ function SideNav() {
                             <p> Hot Lead</p>
                           </Link>
                         </li>
-
+                        <li className="nav-item">
+                          <Link
+                            to="/approval"
+                            className={
+                              activeItem === "approval"
+                                ? "nav-link active"
+                                : "nav-link"
+                            }
+                          >
+                            <p>Approval</p>
+                          </Link>
+                        </li>
                         <li className="nav-item">
                           <Link
                             to="/importedlead"
@@ -456,7 +469,7 @@ function SideNav() {
                     )}
 
                     {/* Api  */}
-                    <li className="nav-item">
+                    {/* <li className="nav-item">
                       <Link
                         to="#"
                         className="nav-link"
@@ -485,7 +498,7 @@ function SideNav() {
                           </Link>
                         </li>
                       </ul>
-                    </li>
+                    </li> */}
                     {/* Api */}
                     <li className="nav-item">
                       <Link
@@ -553,7 +566,7 @@ function SideNav() {
                       </ul>
                     </li>
                     {/* for report */}
-
+                    {(userRole === "admin" ) && (
                     <li className="nav-item">
                       <Link
                         to="/Setting"
@@ -567,6 +580,7 @@ function SideNav() {
                         Setting
                       </Link>
                     </li>
+                    )}
                   </>
                 </ul>
               </nav>

@@ -58,6 +58,7 @@ import UploadContactsWhatsapp from "./components/Pages/UploadContactsWhatsapp";
 import UploadContactsSms from "./components/Pages/UploadContactsSms";
 import { isValidToken } from "./utils/util";
 import HotLeads from "./components/Pages/HotLead";
+import Approval from "./components/Pages/Approval";
 function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLogined, setIsLogined] = useState(false);
@@ -103,6 +104,7 @@ function App() {
                 <Route path="/Addlead" element={<Addlead />}></Route>
                 <Route path="/Leads" element={<Leads />}></Route>
                 <Route path="/hotlead" element={<HotLeads />}></Route>
+                <Route path="/approval" element={<Approval />}></Route>
 
                 <Route path="/importedlead" element={<Importedlead />}></Route>
 

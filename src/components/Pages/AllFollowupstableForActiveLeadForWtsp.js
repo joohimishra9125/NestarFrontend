@@ -330,17 +330,50 @@ export default function AllFollowupstableForActiveLeadForWtsp({ sendDataToParent
     }
   }
   const [adSerch, setAdvanceSerch] = useState([]);
+  // const AdvanceSerch = async (e) => {
+  //   e.preventDefault();
+  //   fetch(`${apiUrl}/getAdvanceFillter`, {
+  //     method: "POST",
+  //     headers: {
+  //       "Content-Type": "application/json",
+  //       "mongodb-url": DBuUrl,
+  //           Authorization: "Bearer " + localStorage.getItem("token"),
+
+  //     },
+  //     body: JSON.stringify(adSerch),
+  //   })
+  //     .then((response) => {
+  //       if (!response.ok) {
+  //         throw new Error(`HTTP error! Status: ${response.status}`);
+  //       }
+  //       return response.json();
+  //     })
+  //     .then((data) => {
+  //       console.log("Response from server:", data);
+  //       setstatus(data?.success);
+  //       setleads(data?.lead);
+  //       setfilterleads(data?.lead);
+  //     })
+  //     .catch((error) => {
+  //       console.error("Fetch error:", error);
+  //       // Handle errors
+  //     });
+  // };
+  
   const AdvanceSerch = async (e) => {
     e.preventDefault();
+    const updatedata = {
+      ...adSerch,
+      user_id: localStorage.getItem("user_id"),
+      role: localStorage.getItem("role"),
+    };
     fetch(`${apiUrl}/getAdvanceFillter`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "mongodb-url": DBuUrl,
-            Authorization: "Bearer " + localStorage.getItem("token"),
-
       },
-      body: JSON.stringify(adSerch),
+      body: JSON.stringify(updatedata),
     })
       .then((response) => {
         if (!response.ok) {
@@ -359,7 +392,7 @@ export default function AllFollowupstableForActiveLeadForWtsp({ sendDataToParent
         // Handle errors
       });
   };
-  
+
   const EnterMessage = (e) => {
     const message = e.target.value;
     setsendmessage({ ...sendmessage, message: message });
