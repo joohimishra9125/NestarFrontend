@@ -237,18 +237,18 @@ function SideNav() {
                             <p> Hot Lead</p>
                           </Link>
                         </li>
-                        <li className="nav-item">
-                          <Link
-                            to="/approval"
-                            className={
-                              activeItem === "approval"
-                                ? "nav-link active"
-                                : "nav-link"
-                            }
-                          >
-                            <p>Approval</p>
-                          </Link>
-                        </li>
+                        // <li className="nav-item">
+                        //   <Link
+                        //     to="/approval"
+                        //     className={
+                        //       activeItem === "approval"
+                        //         ? "nav-link active"
+                        //         : "nav-link"
+                        //     }
+                        //   >
+                        //     <p>Approval</p>
+                        //   </Link>
+                        // </li>
                         <li className="nav-item">
                           <Link
                             to="/importedlead"
